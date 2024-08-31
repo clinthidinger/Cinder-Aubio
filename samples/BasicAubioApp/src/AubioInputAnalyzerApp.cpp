@@ -23,7 +23,6 @@
 #include "CinderAubioOnset.h"
 #include "CinderAubioPitch.h"
 
-//#include "BTrack.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -40,18 +39,18 @@ public:
 	void drawLabels();
 	void printBinInfo( int mouseX );
 
-	audio::InputDeviceNodeRef		 mInputDeviceNode;
-	audio::MonitorSpectralNodeRef	 mMonitorSpectralNode;
-	std::vector<float>				 mMagSpectrum;
+	audio::InputDeviceNodeRef		     mInputDeviceNode;
+	audio::MonitorSpectralNodeRef	     mMonitorSpectralNode;
+	std::vector<float>				     mMagSpectrum;
 
-	SpectrumPlot					 mSpectrumPlot;
-	gl::TextureFontRef				 mTextureFont;
+	SpectrumPlot					     mSpectrumPlot;
+	gl::TextureFontRef				     mTextureFont;
 	std::unique_ptr<CinderAubioBeat>     mAubioBeat;
 	std::unique_ptr<CinderAubioPitch>    mAubioPitch;
 	std::unique_ptr<CinderAubioOnset>    mAubioOnset;
 	std::unique_ptr<CinderAubioMelBands> mAubioBands;
-	bool mHasBeat{ false };
-	bool mHasOnset{ false };
+	bool                                 mHasBeat{ false };
+	bool                                 mHasOnset{ false };
 };
 
 void AubioInputAnalyzerApp::setup()
@@ -90,27 +89,20 @@ void AubioInputAnalyzerApp::mouseDown( MouseEvent event )
 	console() << "number of frames: " << buffer.getNumFrames() << std::endl;
 	console() << "size: " << buffer.getSize() << std::endl;
 
-	if( mSpectrumPlot.getBounds().contains( event.getPos() ) )
+	if( mSpectrumPlot.getBounds().contains( event.getPos() ) ) {
 		printBinInfo( event.getX() );
+	}
 }
 
 void AubioInputAnalyzerApp::update()
 {
 	mSpectrumPlot.setBounds( Rectf( 40, 40, ( float ) getWindowWidth() - 40, ( float ) getWindowHeight() - 40 ) );
 
-	// Grab audio buffer and pass to btrack
-	//vector<double> samples;
 	audio::Buffer buffer = mMonitorSpectralNode->getBuffer();
-	//for( int i = 0; i < buffer.getSize(); i++ ) {
-	//	samples.push_back( ( double ) buffer[i] );
-	//}
 	
-	//btrack.processAudioFrame( samples.data() );
-
 	float *data = buffer.getData();
 	const int numChannels = buffer.getNumChannels();
-	const int bufferSize = buffer.getNumFrames();//buffer.getSize() / numChannels;
-	//int hh = buffer.getNumFrames();
+	const int bufferSize = buffer.getNumFrames();
 	mAubioOnset->audioIn( data, bufferSize, numChannels );
 	mAubioPitch->audioIn( data, bufferSize, numChannels );
 	mAubioBeat->audioIn( data, bufferSize, numChannels );
@@ -126,25 +118,27 @@ void AubioInputAnalyzerApp::draw()
 	gl::enableAlphaBlending();
 
 	//mSpectrumPlot.draw( mMonitorSpectralNode->getMagSpectrum() );
-	//mSpectrumPlot.draw( mMagSpectrum );
-	std::vector<float> spectrum( mAubioBands->getEnergies(), mAubioBands->getEnergies() + mAubioBands->getNBands() );
+	const std::vector<float> spectrum( mAubioBands->getEnergies(), mAubioBands->getEnergies() + mAubioBands->getNBands() );
 	mSpectrumPlot.draw( spectrum );
 	drawSpectralCentroid();
 	drawLabels();
 
 	if( mHasBeat ) {
-	//if( mHasOnset ) {
+		const gl::ScopedColor scopedClr( ColorAf( 1, 1, 1 ) );
 		gl::pushModelView();
-		gl::color( 1, 1, 1 );
 		gl::drawSolidRect( { 0.0f, 0.0f, ( float ) getWindowWidth(), ( float ) getWindowHeight() } );
-		gl::color( 0, 0, 0 );
-		string beatLabel = "BEAT";
-		mTextureFont->drawString( beatLabel, vec2( getWindowCenter().x - mTextureFont->measureString( beatLabel ).x / 2, ( float ) getWindowHeight() / 2 ) );
 		gl::popModelView();
 		mHasBeat = false;
+	}
+	if( mHasOnset ) {
+		const gl::ScopedColor scopedClr( ColorAf( 0, 0, 1 ) );
+		gl::pushModelView();
+		gl::drawSolidCircle( { getWindowWidth() * 0.5f, getWindowHeight() * 0.5f }, getWindowWidth() * 0.33f );
+		gl::popModelView();
 		mHasOnset = false;
 	}
-	//isnan()
+
+	// getLatestPitch()
 	gl::color( 0, 0.9f, 0.9f );
 }
 
@@ -170,9 +164,9 @@ void AubioInputAnalyzerApp::drawSpectralCentroid()
 
 void AubioInputAnalyzerApp::drawLabels()
 {
-	if( !mTextureFont )
+	if( !mTextureFont ) {
 		mTextureFont = gl::TextureFont::create( Font( Font::getDefault().getName(), 16 ) );
-
+	}
 	// draw x-axis label
 	string freqLabel = "Frequency (hertz)";
 	mTextureFont->drawString( freqLabel, vec2( getWindowCenter().x - mTextureFont->measureString( freqLabel ).x / 2, ( float ) getWindowHeight() - 20 ) );
